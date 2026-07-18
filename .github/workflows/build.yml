@@ -1,0 +1,70 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # perlu untuk membuat GitHub Release saat push tag
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # --- Frontend (di-embed oleh Go, harus dibangun lebih dulu) ---
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          yarn install --frozen-lockfile
+          yarn build
+
+      # --- Backend Go ---
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Go test
+        run: go test ./...
+
+      - name: Build Windows exe (CGO off, windowsgui)
+        env:
+          CGO_ENABLED: '0'
+          GOOS: windows
+          GOARCH: amd64
+        # github.ref_name = nama tag (v1.0.1) saat push tag, atau nama branch
+        run: go build -trimpath -ldflags="-H windowsgui -s -w -X main.version=${{ github.ref_name }}" -o surat-tanah.exe .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sitanah-windows-amd64
+          path: surat-tanah.exe
+          if-no-files-found: error
+
+      # Push tag v* (mis. v1.0.0) → rilis otomatis; surat-tanah.exe bisa diunduh
+      # langsung dari halaman Releases tanpa login GitHub.
+      - name: Buat GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: surat-tanah.exe
+          generate_release_notes: true

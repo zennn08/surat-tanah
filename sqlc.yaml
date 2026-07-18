@@ -1,0 +1,16 @@
+version: "2"
+sql:
+  - engine: "sqlite"
+    schema: "internal/db/schema.sql"
+    queries: "internal/db/queries.sql"
+    gen:
+      go:
+        package: "db"
+        out: "internal/db"
+        emit_json_tags: true
+        emit_interface: false
+        emit_empty_slices: true
+        json_tags_case_style: "snake"
+        # sqlc menyingkat/menyalahartikan nama tabel non-Inggris.
+        rename:
+          ketua_rt: "KetuaRT"

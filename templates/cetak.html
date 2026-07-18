@@ -1,0 +1,320 @@
+{{define "cetak"}}<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Cetak Berkas {{.NomorBerkas}}</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt; line-height: 1.4; color: #000; margin: 0; background: #e5e7eb;
+  }
+  .toolbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    background: #111; color: #fff; padding: 8px 16px; display: flex; gap: 8px; align-items: center;
+    font-size: 14px;
+  }
+  .toolbar button { font: inherit; padding: 6px 14px; cursor: pointer; border: 0; border-radius: 4px; }
+  .toolbar .print { background: #0f5c4d; color: #fff; }
+  .toolbar .muted { color: #cbd5e1; margin-left: auto; }
+
+  .surat { background: #fff; }
+  .judul { text-align: center; font-weight: bold; font-size: 12pt; text-transform: uppercase; margin-bottom: 2pt; }
+  .judul-sub { text-align: center; font-weight: bold; font-size: 12pt; margin-bottom: 10pt; }
+  .isi p { text-align: justify; margin: 6pt 0; }
+  /* Nilai isian polos di badan surat; garis bawah hanya pada blok tanda tangan. */
+  .u { text-decoration: none; }
+  .kolom2 .u, .pejabat2 .u { text-decoration: underline; }
+
+  /* blok identitas: label kiri, titik dua sejajar */
+  table.data { margin: 4pt 0 4pt 18pt; border-collapse: collapse; }
+  table.data td { padding: 1.5pt 6pt 1.5pt 0; vertical-align: top; }
+  table.data td.k { width: 130px; }
+  table.data td.s { width: 12px; }
+
+  /* batas-batas: tanpa garis tabel */
+  table.batas { margin: 4pt 0 4pt 18pt; border-collapse: collapse; }
+  table.batas td { padding: 1.5pt 8pt 1.5pt 0; vertical-align: bottom; }
+  table.batas td.arah { width: 120px; white-space: nowrap; }
+  table.batas td.lbl { width: 170px; white-space: nowrap; }
+  table.batas td.nama { min-width: 170px; }
+  table.batas td.m { white-space: nowrap; }
+
+  /* dua kolom bebas */
+  .kolom2 { display: flex; justify-content: space-between; gap: 24pt; margin-top: 10pt; }
+  .kolom2 .kiri { flex: 1 1 52%; }
+  .kolom2 .kanan { flex: 1 1 44%; }
+  .rata-kanan { text-align: center; }
+  .sp { height: 16pt; }
+  .sp-ttd { height: 42pt; }
+
+  .materai {
+    border: 1px solid #000; width: 90px; height: 48px; margin: 8pt auto;
+    display: flex; align-items: center; justify-content: center; text-align: center; font-size: 9pt;
+  }
+
+  .mengetahui { text-align: center; font-weight: bold; margin-top: 14pt; }
+  .pejabat2 { display: flex; justify-content: space-between; margin-top: 6pt; }
+  .pejabat2 .col { flex: 0 0 45%; text-align: center; }
+
+  .saksi-row { margin: 6pt 0; white-space: nowrap; }
+
+  /* kotak peta Sceets Kaart */
+  /* ponytail: 10cm (spec minta ±12–13cm) — 12.5cm membuat halaman meluber; naikkan lagi bila blok TTD dipadatkan */
+  .peta { border: 1.5px solid #000; height: 9.5cm; position: relative; margin: 8pt 0; }
+  .peta svg { position: absolute; top: 8px; left: 8px; }
+
+  /* halaman Sceets Kaart lebih padat agar muat 1 halaman A4 */
+  .kaart { font-size: 10.5pt; line-height: 1.3; }
+  .kaart .isi p { margin: 4pt 0; }
+  .kaart .judul-sub { margin-bottom: 6pt; }
+  .kaart .saksi-row { margin: 4pt 0; }
+  .kaart .sp { height: 10pt; }
+  .kaart .sp-ttd { height: 30pt; }
+  .kaart .kolom2 { margin-top: 6pt; }
+  .kaart .mengetahui { margin-top: 8pt; }
+
+  @media screen {
+    body { padding: 60px 0 40px; }
+    .surat { width: 21cm; min-height: 29.7cm; padding: 2cm 2.5cm; margin: 0 auto 1.5rem; box-shadow: 0 2px 12px rgba(0,0,0,.25); }
+  }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none; }
+    @page { size: A4; margin: 2cm 2.5cm; }
+    .surat { width: auto; min-height: auto; padding: 0; margin: 0; page-break-after: always; }
+    .surat:last-child { page-break-after: auto; }
+    .kolom2, .pejabat2, .materai { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <button class="print" onclick="window.print()">🖨 Cetak / Simpan PDF</button>
+  <button onclick="window.close()">Tutup</button>
+  <span class="muted">A4 · Arial · 3 surat = 3 halaman · Berkas {{.NomorBerkas}} (nomor tidak ikut tercetak)</span>
+</div>
+
+{{/* ============ SURAT 1: PERNYATAAN TIDAK BERSENGKETA ============ */}}
+<section class="surat">
+  <div class="judul">SURAT PERNYATAAN TIDAK BERSENGKETA</div>
+  <div class="isi">
+    <p>Saya yang bertanda tangan dibawah ini</p>
+
+    <table class="data">
+      <tr><td class="k">Nama</td><td class="s">:</td><td><span class="u">{{.P1Nama}}</span></td></tr>
+      <tr><td class="k">U m u r</td><td class="s">:</td><td><span class="u">{{.P1Umur}}</span> Tahun</td></tr>
+      <tr><td class="k">NIK</td><td class="s">:</td><td><span class="u">{{.P1Nik}}</span></td></tr>
+      <tr><td class="k">Pekerjaan</td><td class="s">:</td><td><span class="u">{{.P1Pekerjaan}}</span></td></tr>
+      <tr><td class="k">A l a m a t</td><td class="s">:</td><td><span class="u">{{.P1Alamat}}</span></td></tr>
+    </table>
+
+    <p>dengan pikiran dan akal yang sehat serta tidak dipengaruhi oleh siapapun juga telah menyatakan
+    bahwa benar saya mengusahakan/menggarap sebidang tanah yang terletak di jalan/gang
+    <span class="u">{{.JalanGang}}</span> RT <span class="u">{{.RT}}</span> Kelurahan <span class="u">{{.Kelurahan}}</span>
+    Kecamatan <span class="u">{{.Kecamatan}}</span> Kota <span class="u">{{.Kota}}</span> seluas
+    <span class="u">{{.Luas}}</span> M².</p>
+
+    <p>dengan batas-batas sebagai berikut :</p>
+    <table class="batas">
+      {{range .Batas}}
+      <tr>
+        <td class="arah">Sebelah {{.Arah}}</td>
+        <td class="lbl">Berbatas dengan tanah</td>
+        <td class="nama"><span class="u">{{.Nama}}</span></td>
+        <td class="m"><span class="u">{{.Panjang}}</span> Meter</td>
+      </tr>
+      {{end}}
+    </table>
+
+    <p>Selama saya mengusahakan tanah tersebut tidak pernah terjadi persengketaan dengan batas tanah
+    orang lain atau persengketaan lainnya dan sama sekali tidak pernah bersangkutan dengan pihak manapun
+    seperti Kredit Bank, digadaikan dan lain sebagainya. Apabila terjadi tuntutan dari pihak manapun juga,
+    maka saya tidak melibatkan pihak pemerintah dan saksi-saksi yang bertanda tangan dalam surat
+    keterangan ganti kerugian ini.</p>
+
+    <p>Demikian Surat Pernyataan ini saya buat dengan sebenarnya untuk dapat dipergunakan seperlunya.</p>
+  </div>
+
+  <div class="kolom2">
+    <div class="kiri">
+      <div>Saksi &ndash; saksi Sempadan :</div>
+      <div class="sp"></div>
+      {{range $i, $s := .Saksi}}
+      <div class="saksi-row">{{inc $i}}. ______________&nbsp;&nbsp;( <span class="u">{{$s}}</span> )</div>
+      {{end}}
+    </div>
+    <div class="kanan rata-kanan">
+      <div>{{.Kota}}, {{.TanggalSurat}}</div>
+      <div>Saya Yang Memberi Pernyataan,</div>
+      <div class="materai">Materai<br>10.000,-</div>
+      <div class="sp"></div>
+      <div>( <span class="u">{{.P1Nama}}</span> )</div>
+    </div>
+  </div>
+
+  <div class="mengetahui">MENGETAHUI :</div>
+  <div class="pejabat2">
+    <div class="col">
+      <div>LURAH {{.KelurahanUpper}}</div>
+      <div class="sp-ttd"></div>
+      <div>( <span class="u">{{.LurahNama}}</span> )</div>
+      <div>NIP. {{.LurahNip}}</div>
+    </div>
+    <div class="col">
+      <div>KETUA RT {{.RT}}</div>
+      <div class="sp-ttd"></div>
+      <div>( <span class="u">{{.KetuaRTNama}}</span> )</div>
+    </div>
+  </div>
+</section>
+
+{{/* ============ SURAT 2: BERITA ACARA PENGUKURAN TANAH ============ */}}
+<section class="surat">
+  <div class="judul">BERITA ACARA PENGUKURAN TANAH</div>
+  <div class="isi">
+    <p>Pada hari ini <span class="u">{{.Hari}}</span> Tanggal <span class="u">{{.Tanggal}}</span> Bulan
+    <span class="u">{{.Bulan}}</span> Tahun <span class="u">{{.Tahun}}</span>, kami petugas Juru Ukur telah
+    melaksanakan pengukuran tanah atas nama <span class="u">{{.P1Nama}}</span> dan dihadiri langsung oleh
+    PIHAK PERTAMA yang terletak di Jln / Gang <span class="u">{{.JalanGang}}</span> RT <span class="u">{{.RT}}</span>
+    Kelurahan <span class="u">{{.Kelurahan}}</span> seluas <span class="u">{{.Luas}}</span> M²
+    dengan batas-batas sebagai berikut :</p>
+
+    <table class="batas">
+      {{range .Batas}}
+      <tr>
+        <td class="arah">Sebelah {{.Arah}}</td>
+        <td class="lbl">Berbatas dengan tanah</td>
+        <td class="nama"><span class="u">{{.Nama}}</span></td>
+        <td class="m"><span class="u">{{.Panjang}}</span> Meter</td>
+      </tr>
+      {{end}}
+    </table>
+
+    <p>Tanah garapan sebagaimana dimaksud akan diganti rugi oleh PIHAK KEDUA seluas
+    <span class="u">{{.LuasGantiRugi}}</span> m²</p>
+
+    <p>Demikian Berita Acara Pengukuran Tanah ini dibuat dengan sebenarnya dan dapat dipergunakan seperlunya.</p>
+  </div>
+
+  <div style="text-align:right; margin: 10pt 0;">{{.Kota}}, {{.TanggalSurat}}</div>
+
+  <div class="pejabat2" style="margin-bottom: 8pt;">
+    <div class="col" style="text-align:left;">
+      <div>PIHAK PERTAMA,</div>
+      <div class="sp-ttd"></div>
+      <div>...........................</div>
+      <div>( <span class="u">{{.P1Nama}}</span> )</div>
+    </div>
+    <div class="col" style="text-align:left;">
+      <div>PIHAK KEDUA,</div>
+      <div class="sp-ttd"></div>
+      <div>...........................</div>
+      <div>( <span class="u">{{.P2Nama}}</span> )</div>
+    </div>
+  </div>
+
+  <div class="kolom2">
+    <div class="kiri">
+      <div>Saksi-Saksi Sempadan :</div>
+      <div class="sp"></div>
+      {{range $i, $s := .Saksi}}
+      <div class="saksi-row">{{inc $i}}. <span class="u">{{$s}}</span>&nbsp;&nbsp;:&nbsp;&nbsp;____________</div>
+      {{end}}
+    </div>
+    <div class="kanan">
+      <div>1. Petugas Juru Ukur Kelurahan</div>
+      <div class="sp-ttd"></div>
+      <div>&nbsp;&nbsp;&nbsp;...........................</div>
+      <div>&nbsp;&nbsp;&nbsp;<span class="u">{{.JuruKelNama}}</span><br>&nbsp;&nbsp;&nbsp;NIP. {{.JuruKelNip}}</div>
+      <div class="sp"></div>
+      <div>2. Petugas Juru Ukur Kecamatan</div>
+      <div class="sp-ttd"></div>
+      <div>&nbsp;&nbsp;&nbsp;...........................</div>
+      <div>&nbsp;&nbsp;&nbsp;<span class="u">{{.JuruKecNama}}</span><br>&nbsp;&nbsp;&nbsp;NIP : {{.JuruKecNip}}</div>
+    </div>
+  </div>
+
+  <div class="mengetahui" style="font-weight:normal;">Mengetahui :</div>
+  <div class="pejabat2">
+    <div class="col">
+      <div>LURAH {{.KelurahanUpper}}</div>
+      <div class="sp-ttd"></div>
+      <div>( <span class="u">{{.LurahNama}}</span> )</div>
+      <div>NIP. {{.LurahNip}}</div>
+    </div>
+    <div class="col">
+      <div>KETUA RT {{.RT}}</div>
+      <div class="sp-ttd"></div>
+      <div>( <span class="u">{{.KetuaRTNama}}</span> )</div>
+    </div>
+  </div>
+</section>
+
+{{/* ============ SURAT 3: SCEETS KAART ============ */}}
+<section class="surat kaart">
+  <div class="judul">SCEETS KAART</div>
+  <div class="judul-sub">(PETA SITUASI TANAH)</div>
+  <div class="isi">
+    <p>Sebidang tanah yang akan ditetapkan status haknya oleh {{.KantorPertanahan}} yang terletak di :</p>
+
+    <table class="data">
+      <tr><td class="k">Jalan/Gang</td><td class="s">:</td><td><span class="u">{{.JalanGang}}</span></td></tr>
+      <tr><td class="k">Desa/Kelurahan</td><td class="s">:</td><td><span class="u">{{.Kelurahan}}</span></td></tr>
+      <tr><td class="k">Kecamatan</td><td class="s">:</td><td><span class="u">{{.Kecamatan}}</span></td></tr>
+      <tr><td class="k">Kota</td><td class="s">:</td><td><span class="u">{{.Kota}}</span></td></tr>
+      <tr><td class="k">Luas Tanah</td><td class="s">:</td><td>&plusmn; <span class="u">{{.Luas}}</span> M²</td></tr>
+      <tr><td class="k">Dikuasai Oleh</td><td class="s">:</td><td><span class="u">{{.P1Nama}}</span></td></tr>
+    </table>
+  </div>
+
+  {{/* Kotak peta kosong — digambar tangan setelah dicetak. Mata angin SVG di pojok kiri atas. */}}
+  <div class="peta">
+    <svg width="54" height="78" viewBox="0 0 54 78" xmlns="http://www.w3.org/2000/svg">
+      <text x="27" y="14" text-anchor="middle" font-size="12" font-weight="bold" font-family="Arial">U</text>
+      <polygon points="27,18 21,32 27,27 33,32" fill="#000"/>
+      <line x1="27" y1="27" x2="27" y2="70" stroke="#000" stroke-width="1.5"/>
+    </svg>
+  </div>
+
+  <div class="kolom2">
+    <div class="kiri">
+      <div>Saksi &ndash; saksi Sempadan :</div>
+      <div class="sp"></div>
+      {{range $i, $s := .Saksi}}
+      <div class="saksi-row">{{inc $i}}. ______________&nbsp;&nbsp;( <span class="u">{{$s}}</span> )</div>
+      {{end}}
+    </div>
+    <div class="kanan">
+      <div class="rata-kanan">
+        <div>{{.Kota}}, {{.TanggalSurat}}</div>
+        <div>Yang Menguasai Tanah,</div>
+        <div class="sp-ttd"></div>
+        <div>( <span class="u">{{.P1Nama}}</span> )</div>
+      </div>
+      <div class="sp"></div>
+      <div>Juru Ukur :</div>
+      <div class="saksi-row">1. __________&nbsp;&nbsp;( <span class="u">{{.JuruKelNama}}</span> )<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;NIP. {{.JuruKelNip}}</div>
+      <div class="saksi-row">2. __________&nbsp;&nbsp;( <span class="u">{{.JuruKecNama}}</span> )<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;NIP. {{.JuruKecNip}}</div>
+    </div>
+  </div>
+
+  <div class="mengetahui" style="font-weight:normal;">Mengetahui :</div>
+  <div class="pejabat2">
+    <div class="col">
+      <div>LURAH {{.KelurahanUpper}}</div>
+      <div class="sp-ttd"></div>
+      <div>( <span class="u">{{.LurahNama}}</span> )</div>
+      <div>NIP. {{.LurahNip}}</div>
+    </div>
+    <div class="col">
+      <div>KETUA RT {{.RT}}</div>
+      <div class="sp-ttd"></div>
+      <div>( <span class="u">{{.KetuaRTNama}}</span> )</div>
+    </div>
+  </div>
+</section>
+</body>
+</html>{{end}}
